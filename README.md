@@ -1,4 +1,4 @@
-# Encode ETH Bootcamp Final Project
+# Encode ETH Bootcamp Final Group Project
 
 # Project Name: Rayze
 
