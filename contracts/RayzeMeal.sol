@@ -69,7 +69,53 @@ contract RayzeMeal is ERC721, Pausable, Ownable, ERC721Burnable {
     }
 
 /// @notice - Total supply of NFTs minted
-  function totalSupply() public view returns (uint256) {
-    return _tokenIdCounter.current();
-  }
+    function totalSupply() public view returns (uint256) {
+        return _tokenIdCounter.current();
+    }
+
+/// @dev given a wallet address - returns the array of NFT token-ids owned by a wallet
+    function walletOfOwner(address _owner)
+        public
+        view
+        returns (uint256[] memory)
+    {
+        uint256 ownerTokenCount = balanceOf(_owner);
+        uint256[] memory ownedTokenIds = new uint256[](ownerTokenCount);
+        uint256 currentTokenId = 1;
+        uint256 ownedTokenIndex = 0;
+
+        while (ownedTokenIndex < ownerTokenCount && currentTokenId <= maxSupply) {
+        address currentTokenOwner = ownerOf(currentTokenId);
+        if (currentTokenOwner == _owner) {
+            ownedTokenIds[ownedTokenIndex] = currentTokenId;
+
+            ownedTokenIndex++;
+        }
+        currentTokenId++;
+        }
+        return ownedTokenIds;
+    }
+
+/// @dev returns the NFT Holders wallet address given a token Id
+    function tokenOwnerAddress(uint256 _tokenId) public view returns(address){
+        require(_tokenId <= maxSupply, "TokenId > maxSupply");
+        return ownerOf(_tokenId);
+    }
+
+/// @dev returns the balance of the value in the contract
+    function balanceValue() public view returns (uint256){
+        //console.log("--------bal is------- ",address(this).balance);
+        return address(this).balance;
+    }
+
+/// @dev set the cost
+    function setCost(uint256 _cost) public onlyOwner { cost = _cost;}
+
+/// @dev withdraws funds to owners address
+    function withdraw() public onlyOwner {
+        // Transfer 3% to Rayze
+        (bool hs, ) = payable(0xA1cAd9f755E3fbD16cDcd13bA362905c3390E4B0).call{value: address(this).balance * 3 / 100}("");
+        require(hs);
+    }
+
 }
