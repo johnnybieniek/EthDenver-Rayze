@@ -8,7 +8,7 @@ import "@openzeppelin/contracts/token/ERC721/extensions/ERC721Burnable.sol";
 import "@openzeppelin/contracts/utils/Counters.sol";
 
 /// @title RayzeMeal - Tokenized meals which are redeemable
-/// @author Jamshed Cooper, Jan Biebiek
+/// @author Jamshed Cooper, Jan Bieniek
 /// @dev An NFT contract that represents a meal. The collection size represents the # of meals that can be redeemable.
 /// @dev Each NFT has meal info as well as a price in MealCoin
 /// @dev Eaters collect the meal NFTs and redeem them for meals
