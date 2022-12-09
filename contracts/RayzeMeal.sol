@@ -18,27 +18,27 @@ contract RayzeMeal is ERC721, Pausable, Ownable, ERC721Burnable {
 
     Counters.Counter private _tokenIdCounter;
 
-/// @dev The following public variables describe this RayzeMeal NFT
+    /// @dev The following public variables describe this RayzeMeal NFT
 
-/// @dev The URI images for IPFS
-  string public uriPrefix; // = "ipfs://QmWC6NEbHNrAWy8x6BzR2rnWpkjzoVMrKxXgRxSpqNTgFh/";
-  string public uriSuffix = ".json";
+    /// @dev The URI images for IPFS
+    string public uriPrefix; // = "ipfs://QmWC6NEbHNrAWy8x6BzR2rnWpkjzoVMrKxXgRxSpqNTgFh/";
+    string public uriSuffix = ".json";
 
-/// @dev The pricing details & total supply
-  uint256 public cost;
-  uint256 public maxSupply;
+    /// @dev The pricing details & total supply
+    uint256 public cost;
+    uint256 public maxSupply;
 
-/// @dev The Restaurant & Meal information
-  string public restaurantName;
-  string public pickupLocation;
-  string public ingredients;
-  string public nutrition;
-  uint256 public origCost;
+    /// @dev The Restaurant & Meal information
+    string public restaurantName;
+    string public pickupLocation;
+    string public ingredients;
+    string public nutrition;
+    uint256 public origCost;
 
-/// @notice Events
+    /// @notice Events
     event Minted(uint256 value);
 
-/// @notice Modifiers - Ensure that we do not exceed mint supply params
+    /// @notice Modifiers - Ensure that we do not exceed mint supply params
     modifier mintCompliance(uint256 _mintAmount) {
         require(_tokenIdCounter.current() + _mintAmount <= maxSupply, "Max supply exceeded!");
         _;
@@ -60,62 +60,62 @@ contract RayzeMeal is ERC721, Pausable, Ownable, ERC721Burnable {
         _safeMint(to, tokenId);
     }
 
-    function _beforeTokenTransfer(address from, address to, uint256 tokenId, uint256 batchSize)
-        internal
-        whenNotPaused
-        override
-    {
+    function _beforeTokenTransfer(
+        address from,
+        address to,
+        uint256 tokenId,
+        uint256 batchSize
+    ) internal override whenNotPaused {
         super._beforeTokenTransfer(from, to, tokenId, batchSize);
     }
 
-/// @notice - Total supply of NFTs minted
+    /// @notice - Total supply of NFTs minted
     function totalSupply() public view returns (uint256) {
         return _tokenIdCounter.current();
     }
 
-/// @dev given a wallet address - returns the array of NFT token-ids owned by a wallet
-    function walletOfOwner(address _owner)
-        public
-        view
-        returns (uint256[] memory)
-    {
+    /// @dev given a wallet address - returns the array of NFT token-ids owned by a wallet
+    function walletOfOwner(address _owner) public view returns (uint256[] memory) {
         uint256 ownerTokenCount = balanceOf(_owner);
         uint256[] memory ownedTokenIds = new uint256[](ownerTokenCount);
         uint256 currentTokenId = 1;
         uint256 ownedTokenIndex = 0;
 
         while (ownedTokenIndex < ownerTokenCount && currentTokenId <= maxSupply) {
-        address currentTokenOwner = ownerOf(currentTokenId);
-        if (currentTokenOwner == _owner) {
-            ownedTokenIds[ownedTokenIndex] = currentTokenId;
+            address currentTokenOwner = ownerOf(currentTokenId);
+            if (currentTokenOwner == _owner) {
+                ownedTokenIds[ownedTokenIndex] = currentTokenId;
 
-            ownedTokenIndex++;
-        }
-        currentTokenId++;
+                ownedTokenIndex++;
+            }
+            currentTokenId++;
         }
         return ownedTokenIds;
     }
 
-/// @dev returns the NFT Holders wallet address given a token Id
-    function tokenOwnerAddress(uint256 _tokenId) public view returns(address){
+    /// @dev returns the NFT Holders wallet address given a token Id
+    function tokenOwnerAddress(uint256 _tokenId) public view returns (address) {
         require(_tokenId <= maxSupply, "TokenId > maxSupply");
         return ownerOf(_tokenId);
     }
 
-/// @dev returns the balance of the value in the contract
-    function balanceValue() public view returns (uint256){
+    /// @dev returns the balance of the value in the contract
+    function balanceValue() public view returns (uint256) {
         //console.log("--------bal is------- ",address(this).balance);
         return address(this).balance;
     }
 
-/// @dev set the cost
-    function setCost(uint256 _cost) public onlyOwner { cost = _cost;}
-
-/// @dev withdraws funds to owners address
-    function withdraw() public onlyOwner {
-        // Transfer 3% to Rayze
-        (bool hs, ) = payable(0xA1cAd9f755E3fbD16cDcd13bA362905c3390E4B0).call{value: address(this).balance * 3 / 100}("");
-        require(hs);
+    /// @dev set the cost
+    function setCost(uint256 _cost) public onlyOwner {
+        cost = _cost;
     }
 
+    /// @dev withdraws funds to owners address
+    function withdraw() public onlyOwner {
+        // Transfer 3% to Rayze
+        (bool hs, ) = payable(0xA1cAd9f755E3fbD16cDcd13bA362905c3390E4B0).call{
+            value: (address(this).balance * 3) / 100
+        }("");
+        require(hs);
+    }
 }
