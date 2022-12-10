@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.17;
 
-import {MealToken} from "./MealToken.sol";
+//import {IMealToken} from "./IMealToken.sol";
 import {RayzeMeal} from "./RayzeMeal.sol";
 
 /// @title RayzeMeal - Tokenized meals which are redeemable
@@ -10,7 +10,7 @@ import {RayzeMeal} from "./RayzeMeal.sol";
 contract RayzeMarketplace {
 
 /// @dev Variables required for Marketplace
-    MealToken public mealToken;
+    address public mealToken;
     bool public isBookingOpen;
     address public owner;
 
@@ -41,7 +41,7 @@ contract RayzeMarketplace {
     constructor(
         string memory _tokenName,
         string memory _tokenSymbol) {
-        mealToken = new MealToken(_tokenName, _tokenSymbol);
+        //mealToken = new MealToken(_tokenName, _tokenSymbol);
         isBookingOpen = false;
     }
 

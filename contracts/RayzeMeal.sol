@@ -4,7 +4,6 @@ pragma solidity ^0.8.17;
 import "@openzeppelin/contracts/token/ERC721/ERC721.sol";
 import "@openzeppelin/contracts/security/Pausable.sol";
 import "@openzeppelin/contracts/access/Ownable.sol";
-import "@openzeppelin/contracts/token/ERC721/extensions/ERC721Burnable.sol";
 import "@openzeppelin/contracts/utils/Counters.sol";
 
 /// @title RayzeMeal - Tokenized meals which are redeemable
@@ -13,7 +12,7 @@ import "@openzeppelin/contracts/utils/Counters.sol";
 /// @dev Each NFT has meal info as well as a price in MealCoin
 /// @dev Eaters collect the meal NFTs and redeem them for meals
 
-contract RayzeMeal is ERC721, Pausable, Ownable, ERC721Burnable {
+contract RayzeMeal is ERC721, Pausable, Ownable {
     using Counters for Counters.Counter;
 
     Counters.Counter private _tokenIdCounter;
@@ -98,25 +97,25 @@ contract RayzeMeal is ERC721, Pausable, Ownable, ERC721Burnable {
         return _tokenIdCounter.current();
     }
 
-/// @dev given a wallet address - returns the array of NFT token-ids owned by a wallet
-    function walletOfOwner(address _owner) public view returns (uint256[] memory) {
-        uint256 ownerTokenCount = balanceOf(_owner);
-        uint256[] memory ownedTokenIds = new uint256[](ownerTokenCount);
-        uint256 currentTokenId = 1;
-        uint256 ownedTokenIndex = 0;
-        uint256 maxSup = _tokenIdCounter.current();
+// /// @dev given a wallet address - returns the array of NFT token-ids owned by a wallet
+//     function walletOfOwner(address _owner) public view returns (uint256[] memory) {
+//         uint256 ownerTokenCount = balanceOf(_owner);
+//         uint256[] memory ownedTokenIds = new uint256[](ownerTokenCount);
+//         uint256 currentTokenId = 1;
+//         uint256 ownedTokenIndex = 0;
+//         uint256 maxSup = _tokenIdCounter.current();
 
-        while (ownedTokenIndex < ownerTokenCount && currentTokenId <= maxSup) {
-            address currentTokenOwner = ownerOf(currentTokenId);
-            if (currentTokenOwner == _owner) {
-                ownedTokenIds[ownedTokenIndex] = currentTokenId;
+//         while (ownedTokenIndex < ownerTokenCount && currentTokenId <= maxSup) {
+//             address currentTokenOwner = ownerOf(currentTokenId);
+//             if (currentTokenOwner == _owner) {
+//                 ownedTokenIds[ownedTokenIndex] = currentTokenId;
 
-                ownedTokenIndex++;
-            }
-            currentTokenId++;
-        }
-        return ownedTokenIds;
-    }
+//                 ownedTokenIndex++;
+//             }
+//             currentTokenId++;
+//         }
+//         return ownedTokenIds;
+//     }
 
 /// @dev returns the NFT Holders wallet address given a token Id
     function tokenOwnerAddress(uint256 _tokenId) public view returns (address) {
@@ -151,20 +150,20 @@ contract RayzeMeal is ERC721, Pausable, Ownable, ERC721Burnable {
         require(hs);
     }
 
-/// @dev redeem the meal with ix index of the NFT owned by the owner of the NFT(i)
-    function redeemMeal(uint256 ix) public onlyOwner whenNotPaused{
-        require(ix <= _tokenIdCounter.current(), "NFT index > max supply");
+// /// @dev redeem the meal with ix index of the NFT owned by the owner of the NFT(i)
+//     function redeemMeal(uint256 ix) public onlyOwner whenNotPaused{
+//         require(ix <= _tokenIdCounter.current(), "NFT index > max supply");
 
-        isRedeemed[ix] = true;
-    }
+//         isRedeemed[ix] = true;
+//     }
 
-/// @dev Open the SAle window for the next day (fromTime, toTime -- when NFTs will be for sale)
-/// @dev The meal needs to be picked up by pickUpTime - else the money is transferred to restaurant
-/// @dev When opening a sale window - the restaurant needs to provide numMealsForSale (ex: Next 18 hours - pickUpBy 3pm - am selling 300 tacos)
-    function openSaleWindow(
-        uint256 fromTime,
-        uint256 toTime,
-        uint256 pickUpBy,
-        uint256 numMealsForSale
-    ) public onlyOwner whenNotPaused {}
-}
+// /// @dev Open the SAle window for the next day (fromTime, toTime -- when NFTs will be for sale)
+// /// @dev The meal needs to be picked up by pickUpTime - else the money is transferred to restaurant
+// /// @dev When opening a sale window - the restaurant needs to provide numMealsForSale (ex: Next 18 hours - pickUpBy 3pm - am selling 300 tacos)
+//     function openSaleWindow(
+//         uint256 fromTime,
+//         uint256 toTime,
+//         uint256 pickUpBy,
+//         uint256 numMealsForSale
+//     ) public onlyOwner whenNotPaused {}
+   }
