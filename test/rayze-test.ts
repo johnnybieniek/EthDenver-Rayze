@@ -16,6 +16,8 @@ const TOKEN_SYMBOL = "MTK"
 const NFT_NAME = "RayzeMeal"
 const NFT_SYMBOL = "RML"
 
+const PURCHASE_AMOUNT = "0.01"
+
 describe("Rayze Marketplace", async () => {
     let accounts: SignerWithAddress[]
     let rayze: RayzeMarketplace
@@ -71,7 +73,16 @@ describe("Rayze Marketplace", async () => {
             throw new Error("Not implemented!")
         })
         it("Mints the correct amount of tokens to the user's wallet", async () => {
-            throw new Error("Not implemented!")
+            const userBalanceBefore = await mealToken.balanceOf(accounts[1].address)
+            expect(userBalanceBefore.toString()).to.eq("0")
+
+            const tx = await rayze
+                .connect(accounts[1])
+                .purchaseMealTokens({ value: ethers.utils.parseEther(PURCHASE_AMOUNT) })
+            await tx.wait()
+            const userBalanceBnAfter = await mealToken.balanceOf(accounts[1].address)
+            const userBalanceAfter = ethers.utils.formatEther(userBalanceBnAfter)
+            expect(userBalanceAfter).to.eq("10.0")
         })
     })
 
@@ -84,11 +95,32 @@ describe("Rayze Marketplace", async () => {
         })
     })
 
+    describe("Register a restaurant", async () => {
+        it("Allows a new reestaurant to register with a wallet address(es?)", async () => {
+            throw new Error("Not implemented!")
+        })
+        it("Reverts if the restaurant already exists in the mapping", async () => {
+            throw new Error("Not implemented!")
+        })
+        it("Makes sure that all of the fields are properly filled out. Reverts otherwise", async () => {
+            throw new Error("Not implemented!")
+        })
+    })
+
     describe("Issue Rayze Meal (by the restaurant)", async () => {
         it("Requires all of the fields to be properly filled. Reverts otherwise", async () => {
             throw new Error("Not implemented!")
         })
         it("Successfully mints the number of meals requested to the restaurant's wallet", async () => {
+            throw new Error("Not implemented!")
+        })
+    })
+
+    describe("Escrow balance (restaurant)", async () => {
+        it("Reverts when a third-party is trying to view this data (?)", async () => {
+            throw new Error("Not implemented!")
+        })
+        it("Returns the restaurant's escrow balance", async () => {
             throw new Error("Not implemented!")
         })
     })
