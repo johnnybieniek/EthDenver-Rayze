@@ -21,7 +21,7 @@ contract RayzeMeal is ERC721, Pausable, Ownable, ERC721Burnable {
 /// @dev The following public variables describe this RayzeMeal NFT
 
 /// @dev The URI images for IPFS
-    string public uriPrefix; // = "ipfs://QmWC6NEbHNrAWy8x6BzR2rnWpkjzoVMrKxXgRxSpqNTgFh/";
+    string public uriPrefix = "ipfs://QmWC6NEbHNrAWy8x6BzR2rnWpkjzoVMrKxXgRxSpqNTgFh/";
     string public uriSuffix = ".json";
 
 /// @dev The pricing details & total supply & redeemFlags
