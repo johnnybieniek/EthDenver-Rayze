@@ -11,22 +11,45 @@ contract RayzeMarketplace {
     MealToken public mealToken;
     RayzeMeal public rayzeMeal;
 
+/// @dev List of all RayzeMeals
+    address [] public rayzeMealsList;
+
 /// @dev register the restaurant as a wallet that can issue NFTs
-    address [] public listRayzeNFTs;
+    struct RestaurantInfo {
+        string  name;
+        string  pickupSpot;
+        uint256 pickupBy;
+        bool    paused;
+    }
+    RestaurantInfo [] public restaurantList;
+    mapping(string => RestaurantInfo) public restaurantLookup;
+    mapping(string => address []) public issuedRayzeMeals;
+
+
+/// @dev Create and Deploy contract and setup MealToken
+/// @dev Called by the Owner of the Rayze Restaurant Network
 
     constructor(
         string memory _tokenName,
-        string memory _tokenSymbol,
-        string memory _nftName,
-        string memory _nftSymbol
-    ) {
+        string memory _tokenSymbol) {
         mealToken = new MealToken(_tokenName, _tokenSymbol);
-        //rayzeMeal = new RayzeMeal(_nftName, _nftSymbol);
     }
 
-    /// @dev register the restaurant as a wallet that can issue NFTs
-    function registerRestaurant() public {
-        //we should be able to control which restaurant issues NFTs. and should be able to switch them off if required.
+/// @dev register the restaurant as a wallet that can issue NFTs
+/// @dev will be called by restaurants to register themselves
+    function registerRestaurant(string memory _name, string memory _pickupSpot, uint256 _pickupBy) public {
+        if (keccak256(abi.encodePacked(restaurantLookup[_name].name)) == keccak256(abi.encodePacked(_name))) {
+            return;
+        }
+        RestaurantInfo memory newRest = RestaurantInfo(
+            {
+            name: _name,
+            pickupSpot: _pickupSpot,
+            pickupBy: _pickupBy,
+            paused: false
+            });
+        restaurantList.push(newRest);
+        restaurantLookup[_name] = newRest;        
     }
 
     /// @dev Restaurant can create a Rayze Meal NFT of size #of meals - to be minted by eaters
