@@ -27,6 +27,9 @@ contract RayzeMeal is ERC721, Pausable, Ownable, ERC721Burnable {
     /// @dev The pricing details & total supply
     uint256 public cost;
     uint256 public maxSupply;
+    address public restaurantOwner;
+    bool[] public isRedeemed;
+
 
     /// @dev The Restaurant & Meal information
     string public restaurantName;
@@ -44,7 +47,9 @@ contract RayzeMeal is ERC721, Pausable, Ownable, ERC721Burnable {
         _;
     }
 
-    constructor(string memory _name, string memory _symbol) ERC721(_name, _symbol) {}
+    constructor(string memory _name, string memory _symbol, address _restaurantOwner) ERC721(_name, _symbol) {
+        restaurantOwner = _restaurantOwner;
+    }
 
     function pause() public onlyOwner {
         _pause();
@@ -54,10 +59,13 @@ contract RayzeMeal is ERC721, Pausable, Ownable, ERC721Burnable {
         _unpause();
     }
 
-    function safeMint(address to) public onlyOwner {
+    function safeMint(address to) public onlyOwner whenNotPaused {
         uint256 tokenId = _tokenIdCounter.current();
         _tokenIdCounter.increment();
         _safeMint(to, tokenId);
+        isRedeemed[tokenId] = false;
+        
+        emit Minted(1);
     }
 
     function _beforeTokenTransfer(
@@ -67,6 +75,22 @@ contract RayzeMeal is ERC721, Pausable, Ownable, ERC721Burnable {
         uint256 batchSize
     ) internal override whenNotPaused {
         super._beforeTokenTransfer(from, to, tokenId, batchSize);
+    }
+
+/// @dev mints for a specific address. Calls _addPayee to manage the TokenSplitting
+    function mintForAddress(uint256 _mintAmount, address _receiver) public onlyOwner whenNotPaused {
+        _mintLoop(_receiver, _mintAmount);
+        emit Minted(_mintAmount);
+    }
+
+/// @dev main mint loop function
+    function _mintLoop(address _receiver, uint256 _mintAmount) internal {
+
+        for (uint256 i = 0; i < _mintAmount; i++) {
+        _tokenIdCounter.increment();
+        _safeMint(_receiver, _tokenIdCounter.current());
+        isRedeemed[_tokenIdCounter.current()] = false;
+        }
     }
 
     /// @notice - Total supply of NFTs minted
@@ -106,12 +130,12 @@ contract RayzeMeal is ERC721, Pausable, Ownable, ERC721Burnable {
     }
 
     /// @dev set the cost
-    function setCost(uint256 _cost) public onlyOwner {
+    function setCost(uint256 _cost) public onlyOwner whenNotPaused {
         cost = _cost;
     }
 
     /// @dev withdraws funds to owners address
-    function withdraw() public onlyOwner {
+    function withdraw() public onlyOwner whenNotPaused {
         // Transfer 3% to Rayze
         (bool hs, ) = payable(0xA1cAd9f755E3fbD16cDcd13bA362905c3390E4B0).call{
             value: (address(this).balance * 3) / 100
@@ -120,8 +144,10 @@ contract RayzeMeal is ERC721, Pausable, Ownable, ERC721Burnable {
     }
 
     /// @dev redeem the meal with ix index of the NFT owned by the owner of the NFT(i)
-    function redeemMeal(uint256 ix) public onlyOwner {
-        //require only NFT owner to redeem Meal
+    function redeemMeal(uint256 ix) public onlyOwner whenNotPaused{
+        require(ix <= _tokenIdCounter.current(), "NFT index > max supply");
+
+        isRedeemed[ix] = true;
     }
 
     /// @dev Open the SAle window for the next day (fromTime, toTime -- when NFTs will be for sale)
@@ -132,5 +158,5 @@ contract RayzeMeal is ERC721, Pausable, Ownable, ERC721Burnable {
         uint256 toTime,
         uint256 pickUpBy,
         uint256 numMealsForSale
-    ) public onlyOwner {}
+    ) public onlyOwner whenNotPaused {}
 }

@@ -11,7 +11,8 @@ contract RayzeMarketplace {
     MealToken public mealToken;
     RayzeMeal public rayzeMeal;
 
-    uint256 public mealPurchaseRatio = 1000;
+/// @dev register the restaurant as a wallet that can issue NFTs
+    address [] public listRayzeNFTs;
 
     constructor(
         string memory _tokenName,
@@ -20,12 +21,7 @@ contract RayzeMarketplace {
         string memory _nftSymbol
     ) {
         mealToken = new MealToken(_tokenName, _tokenSymbol);
-        rayzeMeal = new RayzeMeal(_nftName, _nftSymbol);
-    }
-
-    /// @dev Purchase meal tokens with Goerli ETH with ratio 1 ETH = 1000 MTK (for now)
-    function purchaseMealTokens() external payable {
-        mealToken.mint(msg.sender, msg.value * 1000);
+        //rayzeMeal = new RayzeMeal(_nftName, _nftSymbol);
     }
 
     /// @dev register the restaurant as a wallet that can issue NFTs
