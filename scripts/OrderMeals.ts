@@ -31,15 +31,16 @@ async function main() {
 }
 
 async function initContracts() {
-  const contractFactory = await ethers.getContractFactory("RayzeMarketplace");
-  rayze = await contractFactory.deploy(
+  const tokenFactory = await ethers.getContractFactory("MealToken");
+  token = await tokenFactory.deploy(
     "Rayze",
     "RYZ"
   );
+  await token.deployed();
+  
+  const contractFactory = await ethers.getContractFactory("RayzeMarketplace");
+  rayze = await contractFactory.deploy(token.address);
   await rayze.deployed();
-  const tokenAddress = await rayze.mealToken();
-  const tokenFactory = await ethers.getContractFactory("MealToken");
-  token = tokenFactory.attach(tokenAddress);
 }
 
 async function initAccounts() {

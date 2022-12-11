@@ -2,7 +2,6 @@
 pragma solidity ^0.8.17;
 
 import "@openzeppelin/contracts/token/ERC721/ERC721.sol";
-import "@openzeppelin/contracts/security/Pausable.sol";
 import "@openzeppelin/contracts/access/Ownable.sol";
 import "@openzeppelin/contracts/utils/Counters.sol";
 
@@ -12,7 +11,7 @@ import "@openzeppelin/contracts/utils/Counters.sol";
 /// @dev Each NFT has meal info as well as a price in MealCoin
 /// @dev Eaters collect the meal NFTs and redeem them for meals
 
-contract RayzeMeal is ERC721, Pausable, Ownable {
+contract RayzeMeal is ERC721, Ownable {
     using Counters for Counters.Counter;
 
     Counters.Counter private _tokenIdCounter;
@@ -20,29 +19,20 @@ contract RayzeMeal is ERC721, Pausable, Ownable {
 /// @dev The following public variables describe this RayzeMeal NFT
 
 /// @dev The URI images for IPFS
-    string public uriPrefix = "ipfs://QmWC6NEbHNrAWy8x6BzR2rnWpkjzoVMrKxXgRxSpqNTgFh/";
+    string public uriPrefix;// = "ipfs://QmWC6NEbHNrAWy8x6BzR2rnWpkjzoVMrKxXgRxSpqNTgFh/";
     string public uriSuffix = ".json";
 
 /// @dev The pricing details & total supply & redeemFlags
     uint256 public cost;
     address public restaurantOwner;
-    uint256 public maxSupply;
     bool[] public isRedeemed;
 
 
 /// @dev The Meal information
-    string public ingredients;
-    string public nutrition;
-    uint256 public origCost;
+    // string public ingredients;
+    // string public nutrition;
+    // uint256 public origCost;
 
-/// @notice Events
-    event Minted(uint256 value);
-
-/// @notice Modifiers - Ensure that we do not exceed mint supply params
-    modifier mintCompliance(uint256 _mintAmount) {
-        require(_tokenIdCounter.current() + _mintAmount <= maxSupply, "Max supply exceeded!");
-        _;
-    }
 
     constructor(string memory _name, string memory _symbol, uint256 _cost, string memory _uriPrefix, address _restaurantOwner) ERC721(_name, _symbol) {
         restaurantOwner = _restaurantOwner;
@@ -50,36 +40,35 @@ contract RayzeMeal is ERC721, Pausable, Ownable {
         uriPrefix = _uriPrefix;
     }
 
-    function pause() public onlyOwner {
-        _pause();
-    }
+    // function pause() public onlyOwner {
+    //     _pause();
+    // }
 
-    function unpause() public onlyOwner {
-        _unpause();
-    }
+    // function unpause() public onlyOwner {
+    //     _unpause();
+    // }
 
-    function safeMint(address to) public onlyOwner whenNotPaused {
-        uint256 tokenId = _tokenIdCounter.current();
-        _tokenIdCounter.increment();
-        _safeMint(to, tokenId);
-        isRedeemed[tokenId] = false;
+    // function safeMint(address to) public onlyOwner whenNotPaused {
+    //     uint256 tokenId = _tokenIdCounter.current();
+    //     _tokenIdCounter.increment();
+    //     _safeMint(to, tokenId);
+    //     isRedeemed[tokenId] = false;
         
-        emit Minted(1);
-    }
+    //     emit Minted(1);
+    // }
 
-    function _beforeTokenTransfer(
-        address from,
-        address to,
-        uint256 tokenId,
-        uint256 batchSize
-    ) internal override whenNotPaused {
-        super._beforeTokenTransfer(from, to, tokenId, batchSize);
-    }
+    // function _beforeTokenTransfer(
+    //     address from,
+    //     address to,
+    //     uint256 tokenId,
+    //     uint256 batchSize
+    // ) internal override whenNotPaused {
+    //     super._beforeTokenTransfer(from, to, tokenId, batchSize);
+    // }
 
 /// @dev mints for a specific address. Calls _addPayee to manage the TokenSplitting
-    function mintForAddress(uint256 _mintAmount, address _receiver) public onlyOwner whenNotPaused {
+    function mintForAddress(uint256 _mintAmount, address _receiver) public onlyOwner  {
         _mintLoop(_receiver, _mintAmount);
-        emit Minted(_mintAmount);
     }
 
 /// @dev main mint loop function
@@ -123,47 +112,34 @@ contract RayzeMeal is ERC721, Pausable, Ownable {
         return ownerOf(_tokenId);
     }
 
-/// @dev returns the balance of the value in the contract
-    function balanceValue() public view returns (uint256) {
-        //console.log("--------bal is------- ",address(this).balance);
-        return address(this).balance;
-    }
+// /// @dev returns the balance of the value in the contract
+//     function balanceValue() public view returns (uint256) {
+//         //console.log("--------bal is------- ",address(this).balance);
+//         return address(this).balance;
+//     }
 
+// /// @dev set the cost
+//     function setCost(uint256 _cost) public onlyOwner whenNotPaused {
+//         cost = _cost;
+//     }
 /// @dev set the cost
-    function setCost(uint256 _cost) public onlyOwner whenNotPaused {
-        cost = _cost;
+    function setIsRedeemed(uint256 _ix, bool _value) public onlyOwner  {
+        isRedeemed[_ix] = _value;
     }
 
-/// @dev set the info for the meal
-    function setMealInfo(string memory _ingredients, string memory _nutrition, uint256 _origCost) public onlyOwner whenNotPaused {
-        ingredients = _ingredients;
-        nutrition = _nutrition;
-        origCost = _origCost;
-    }
+// /// @dev set the info for the meal
+//     function setMealInfo(string memory _ingredients, string memory _nutrition, uint256 _origCost) public onlyOwner whenNotPaused {
+//         ingredients = _ingredients;
+//         nutrition = _nutrition;
+//         origCost = _origCost;
+//     }
 
 /// @dev withdraws funds to owners address
-    function withdraw() public onlyOwner whenNotPaused {
+    function withdraw() public onlyOwner  {
         // Transfer 3% to Rayze
         (bool hs, ) = payable(0xA1cAd9f755E3fbD16cDcd13bA362905c3390E4B0).call{
             value: (address(this).balance * 3) / 100
         }("");
         require(hs);
     }
-
-// /// @dev redeem the meal with ix index of the NFT owned by the owner of the NFT(i)
-//     function redeemMeal(uint256 ix) public onlyOwner whenNotPaused{
-//         require(ix <= _tokenIdCounter.current(), "NFT index > max supply");
-
-//         isRedeemed[ix] = true;
-//     }
-
-// /// @dev Open the SAle window for the next day (fromTime, toTime -- when NFTs will be for sale)
-// /// @dev The meal needs to be picked up by pickUpTime - else the money is transferred to restaurant
-// /// @dev When opening a sale window - the restaurant needs to provide numMealsForSale (ex: Next 18 hours - pickUpBy 3pm - am selling 300 tacos)
-//     function openSaleWindow(
-//         uint256 fromTime,
-//         uint256 toTime,
-//         uint256 pickUpBy,
-//         uint256 numMealsForSale
-//     ) public onlyOwner whenNotPaused {}
    }
