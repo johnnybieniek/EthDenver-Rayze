@@ -2,12 +2,15 @@
 pragma solidity ^0.8.17;
 
 import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
-import {RayzeMeal} from "./RayzeMeal.sol";
+import "@openzeppelin/contracts/token/ERC721/IERC721Receiver.sol";
+import {IRayzeMeal} from "./IRayzeMeal.sol";
+import "hardhat/console.sol";
+
 
 /// @title RayzeMeal - Tokenized meals which are redeemable
 /// @author Jamshed Cooper, Jan Bieniek
 
-contract RayzeMarketplace {
+contract RayzeMarketplace is IERC721Receiver {
     using SafeERC20 for IERC20;
 /// @dev Variables required for Marketplace
     address public rayzeToken;
@@ -31,6 +34,7 @@ contract RayzeMarketplace {
 
 /// @notice Modifiers - Ensure onlyByOwner
     modifier onlyByOwner() {
+        console.log("only by owner", msg.sender, owner);
         require(msg.sender == owner, "sender has to be owner");
         _;
     }
@@ -41,6 +45,7 @@ contract RayzeMarketplace {
     constructor(address _rayzeToken) {
         rayzeToken = _rayzeToken;
         isBookingOpen = false;
+        owner = msg.sender;
     }
 
 /// @dev register the restaurant as a wallet that can issue NFTs
@@ -62,12 +67,11 @@ contract RayzeMarketplace {
     }
 
 /// @dev Restaurant can create a new Meal (Taco or Burrito or Pizza entry) as an NFT.
-    function createRayzeMeal(string memory _restName, string memory _name, string memory _symbol, uint256 _cost, string memory _uriPrefix) public returns (address) {
-          require(restaurantLookup[_restName].owner == msg.sender, "sender not rest owner");
-          RayzeMeal rMeal = new RayzeMeal(_name, _symbol, _cost, _uriPrefix, msg.sender);
-          rayzeMealLookup[_restName].push(address(rMeal));
-          rayzeMealList.push(address(rMeal));
-          return address(rMeal);
+    function registerRayzeMeal(string memory _restName, address _rayzeMeal) external {
+         console.log("register rayze meal", restaurantLookup[_restName].owner == msg.sender);
+          //require(restaurantLookup[_restName].owner == msg.sender, "sender not rest owner");
+          rayzeMealLookup[_restName].push(_rayzeMeal);
+          rayzeMealList.push(_rayzeMeal);
     }
 
 /// @dev Returns balance of booked meals (# meals that are booked)
@@ -80,21 +84,21 @@ contract RayzeMarketplace {
         uint256 _tokId) public  {
         //require() msg.sender has to have enough cash
         IERC20(rayzeToken).safeTransferFrom(msg.sender, address(this),
-            RayzeMeal(_mealAddress).cost());
-        RayzeMeal(_mealAddress).safeTransferFrom(address(this), msg.sender, _tokId);
+            IRayzeMeal(_mealAddress).cost());
+        IRayzeMeal(_mealAddress).safeTransferFrom(address(this), msg.sender, _tokId);
     }
 
 /// @dev Customer is the sender - and redeems and picksUp a meal
     function redeemMeal(address _mealAddress,
         uint256 _tokId) public  {
         //require() msg.sender has to have enough cash
+        require(IRayzeMeal(_mealAddress).ownerOf(_tokId) == msg.sender, "only owner can redeem");
+        require(IRayzeMeal(_mealAddress).isRedeemed(_tokId) == false, "Meal is already redeemed");
+        IERC20(rayzeToken).safeTransfer(
+            IRayzeMeal(_mealAddress).restaurantOwner(),
+            IRayzeMeal(_mealAddress).cost());
 
-        require(RayzeMeal(_mealAddress).isRedeemed(_tokId) == false, "Meal is already redeemed");
-        IERC20(rayzeToken).safeTransferFrom(address(this),
-            RayzeMeal(_mealAddress).restaurantOwner(),
-            RayzeMeal(_mealAddress).cost());
-
-        RayzeMeal(_mealAddress).setIsRedeemed(_tokId, true);
+        IRayzeMeal(_mealAddress).setIsRedeemed(_tokId, true);
     }
 
 /// @dev Restaurant opens meal sales -- so opens up numMealsForSale of RayzeMeals
@@ -107,6 +111,11 @@ contract RayzeMarketplace {
         require(isBookingOpen == true, "Sales not open");
         require(restaurantLookup[_restName].owner == msg.sender, "sender not rest owner");
 
-        RayzeMeal(_mealAddress).mintForAddress(numMealsForSale, address(this));
+        IRayzeMeal(_mealAddress).mintForAddress(numMealsForSale, address(this));
+    }
+    
+/// @dev recieve erc721   
+    function onERC721Received(address, address, uint256, bytes memory) public virtual override returns (bytes4) {
+        return this.onERC721Received.selector;
     }
 }

@@ -14,3 +14,4 @@ task("accounts", "Prints the list of accounts", async (taskArgs, hre) => {
 });
 
 export default config;
+

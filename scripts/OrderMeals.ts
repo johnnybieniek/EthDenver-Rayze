@@ -21,8 +21,8 @@ const TOKEN_RATIO = 1;
 
 
 async function main() {
-  await initContracts();
   await initAccounts();
+  await initContracts();
   const rl = readline.createInterface({
     input: process.stdin,
     output: process.stdout,
@@ -37,6 +37,12 @@ async function initContracts() {
     "RYZ"
   );
   await token.deployed();
+
+  const tx = await token.connect(accounts[0]).mint(accounts[1].address,100);
+  tx.wait();
+
+  const bal = token.balanceOf(accounts[1].address);
+  console.log(`The balance of ${accounts[1].address} is ${(await bal).toNumber()}`);
   
   const contractFactory = await ethers.getContractFactory("RayzeMarketplace");
   rayze = await contractFactory.deploy(token.address);
@@ -53,7 +59,7 @@ async function mainMenu(rl: readline.Interface) {
 
 function menuOptions(rl: readline.Interface) {
   rl.question(
-    "Select operation: \n Options: \n [0]: Exit \n [1]: Add restaurant \n [2]: Create Meal NFT \n [3]: Open Meals for Sale \n [4]: Buy Meal \n [5]: Redeem Meal \n [6]: Load Meal Coin \n [7]: Restaurant withdraw \n [8]: Lookup Restaurant\n [9]: Lookup Meal \n",
+    "Select operation: \n Options: \n [0]: Exit \n [1]: Add restaurant \n [2]: Create Meal NFT & Open Meal Sales \n [3]: Open Meals for Sale \n [4]: Buy Meal \n [5]: Redeem Meal \n [6]: Load Meal Coin \n [7]: Restaurant withdraw \n [8]: Lookup Restaurant\n [9]: Lookup Meal \n",
     async (answer: string) => {
       console.log(`Selected: ${answer}\n`);
       const option = Number(answer);
@@ -86,44 +92,45 @@ function menuOptions(rl: readline.Interface) {
           });
           break;
         case 3:
-          rl.question("What account (index) to use?\n", async (index) => {
-            await displayBalance(index);
-            rl.question("Buy how many tokens?\n", async (amount) => {
-              // try {
-              //   await buyTokens(index, amount);
-              //   await displayBalance(index);
-              //   await displayTokenBalance(index);
-              // } catch (error) {
-              //   console.log("error\n");
-              //   console.log({ error });
-              // }
+          rl.question("What is the name of the restaurant\n", async (rName) => {
+              try {
+                await openMealSale(rName);
+              } catch (error) {
+                console.log("error\n");
+                console.log({ error });
+              }
               mainMenu(rl);
             });
-          });
           break;
         case 4:
-          rl.question("What account (index) to use?\n", async (index) => {
-            await displayTokenBalance(index);
-            rl.question("Bet how many times?\n", async (amount) => {
-              // try {
-              //   await bet(index, amount);
-              //   await displayTokenBalance(index);
-              // } catch (error) {
-              //   console.log("error\n");
-              //   console.log({ error });
-              // }
-              mainMenu(rl);
+          rl.question("What is the name of the restaurant\n", async (rName) => {
+            rl.question("What is the index of the meal?\n", async (mIx) => {
+              rl.question("What is the index of the NFT to book?\n", async (nftIx) => {
+                try {
+                  await bookMeal(rName, mIx, nftIx);
+                } catch (error) {
+                  console.log("error\n");
+                  console.log({ error });
+                }
+                mainMenu(rl);
+              });
             });
           });
           break;
         case 5:
-          // try {
-          //   await closeLottery();
-          // } catch (error) {
-          //   console.log("error\n");
-          //   console.log({ error });
-          // }
-          mainMenu(rl);
+          rl.question("What is the name of the restaurant\n", async (rName) => {
+            rl.question("What is the index of the meal?\n", async (mIx) => {
+              rl.question("What is the index of the NFT to book?\n", async (nftIx) => {
+                try {
+                  await redeemMeal(rName, mIx, nftIx);
+                } catch (error) {
+                  console.log("error\n");
+                  console.log({ error });
+                }
+                mainMenu(rl);
+              });
+            });
+          });
           break;
         case 6:
           rl.question("What account (index) to use?\n", async (index) => {
@@ -192,17 +199,33 @@ function menuOptions(rl: readline.Interface) {
 }
 
 async function addRestaurant(name: string) {
-  const tx = await rayze.registerRestaurant(name, "Rockafeller center", 55);
+  const tx = await rayze.connect(accounts[0]).registerRestaurant(name, "Rockafeller center", 55);
   tx.wait();
   const rName = await rayze.restaurantLookup(name);
   console.log(`The restaurant registered is ${rName}\n`);
 }
 
 async function createMeal(rName: string, mName: string) {
-  const tx = await rayze.createRayzeMeal(rName, mName, "SYM", 1, "");
+  const restInfo = await rayze.restaurantLookup(rName);
+  const restAddress = restInfo.owner;
+  const rayzeMealFactory = await ethers.getContractFactory("RayzeMeal");
+  const rMeal = await rayzeMealFactory.deploy(mName, "RYM",1,
+    "ipfs://QmWC6NEbHNrAWy8x6BzR2rnWpkjzoVMrKxXgRxSpqNTgFh/", restAddress);
+  await rMeal.deployed();
+  
+  const tx = await rayze.connect(accounts[0]).registerRayzeMeal(rName, rMeal.address);
   tx.wait();
- // const meal = await rayze.rayzeMealLookup(rName);
- // console.log(`The restaurant registered is ${meal}\n`);
+  console.log(`sender is ${accounts[0].address}, and owner is ${restAddress}`);
+  const bookWinTx = await rayze.connect(accounts[0]).setBookingOpen(true);
+  bookWinTx.wait();
+  const openMealTx = await rayze.connect(accounts[0]).openMealSales(rName, rMeal.address,50);
+  openMealTx.wait();
+  const meal = rMeal.address;
+ //const meal = await rayze.rayzeMealLookup(rName);
+ console.log(`The restaurant is ${restInfo} and meal registered is ${meal}\n`);
+}
+
+async function openMealSale(rName: string, mealAddress: string) {
 }
 
 async function listRestaurant(restId: string) {
@@ -214,13 +237,31 @@ async function listRestaurant(restId: string) {
     console.log(`We have ${len} restaurants. The restaurant listed is ${rest}\n`);
 }
 
+async function bookMeal(rName: string, mIx: string, nftIx: string) {
+  
+  const rest = await rayze.rayzeMealList(Number(mIx));
+  const appr = await token.connect(accounts[1]).approve(rayze.address,100);
+  const tx = await rayze.connect(accounts[1]).bookMeal(rest, Number(nftIx));
+  tx.wait();
+  console.log(`The meal is booked ${rest}`);
+}
+
+async function redeemMeal(rName: string, mIx: string, nftIx: string) {
+  
+  const rest = await rayze.rayzeMealList(Number(mIx));
+  const tx = await rayze.connect(accounts[1]).redeemMeal(rest, Number(nftIx));
+  tx.wait();
+  console.log(`The meal is redeemed ${rest}`);
+}
+
 async function listMeal(mealId: string) {
-  const len = await rayze.rayzeMealList.length;
+  const len = await rayze.rayzeMealList;
+  
   var ix: number;
   ix = +mealId;
 
     const meal = await rayze.rayzeMealList(ix);
-    console.log(`We have ${len} meals. The meal listed is ${meal}\n`);
+    console.log(`We have ${len.toString()} meals. The meal listed is ${meal}\n`);
 }
 
 

@@ -4,6 +4,8 @@ pragma solidity ^0.8.17;
 import "@openzeppelin/contracts/token/ERC721/ERC721.sol";
 import "@openzeppelin/contracts/access/Ownable.sol";
 import "@openzeppelin/contracts/utils/Counters.sol";
+import "hardhat/console.sol";
+
 
 /// @title RayzeMeal - Tokenized meals which are redeemable
 /// @author Jamshed Cooper, Jan Bieniek
@@ -29,9 +31,9 @@ contract RayzeMeal is ERC721, Ownable {
 
 
 /// @dev The Meal information
-    // string public ingredients;
-    // string public nutrition;
-    // uint256 public origCost;
+    string public ingredients;
+    string public nutrition;
+    uint256 public origCost;
 
 
     constructor(string memory _name, string memory _symbol, uint256 _cost, string memory _uriPrefix, address _restaurantOwner) ERC721(_name, _symbol) {
@@ -67,7 +69,7 @@ contract RayzeMeal is ERC721, Ownable {
     // }
 
 /// @dev mints for a specific address. Calls _addPayee to manage the TokenSplitting
-    function mintForAddress(uint256 _mintAmount, address _receiver) public onlyOwner  {
+    function mintForAddress(uint256 _mintAmount, address _receiver) external   {
         _mintLoop(_receiver, _mintAmount);
     }
 
@@ -77,12 +79,12 @@ contract RayzeMeal is ERC721, Ownable {
         for (uint256 i = 0; i < _mintAmount; i++) {
         _tokenIdCounter.increment();
         _safeMint(_receiver, _tokenIdCounter.current());
-        isRedeemed[_tokenIdCounter.current()] = false;
+        isRedeemed.push(false);
         }
     }
 
 /// @notice - Total supply of NFTs minted
-    function totalSupply() public view returns (uint256) {
+    function totalSupply() external view returns (uint256) {
         return _tokenIdCounter.current();
     }
 
@@ -106,11 +108,11 @@ contract RayzeMeal is ERC721, Ownable {
 //         return ownedTokenIds;
 //     }
 
-/// @dev returns the NFT Holders wallet address given a token Id
-    function tokenOwnerAddress(uint256 _tokenId) public view returns (address) {
-        require(_tokenId <= _tokenIdCounter.current(), "TokenId > max supply");
-        return ownerOf(_tokenId);
-    }
+// /// @dev returns the NFT Holders wallet address given a token Id
+//     function tokenOwnerAddress(uint256 _tokenId) public view returns (address) {
+//         require(_tokenId <= _tokenIdCounter.current(), "TokenId > max supply");
+//         return ownerOf(_tokenId);
+//     }
 
 // /// @dev returns the balance of the value in the contract
 //     function balanceValue() public view returns (uint256) {
@@ -123,7 +125,9 @@ contract RayzeMeal is ERC721, Ownable {
 //         cost = _cost;
 //     }
 /// @dev set the cost
-    function setIsRedeemed(uint256 _ix, bool _value) public onlyOwner  {
+    function setIsRedeemed(uint256 _ix, bool _value) external  {
+        //require(msg.sender == this.ownerOf(_ix), "not owner");
+        console.log("setRedeemed ", owner(), msg.sender, this.ownerOf(_ix));
         isRedeemed[_ix] = _value;
     }
 
@@ -134,12 +138,12 @@ contract RayzeMeal is ERC721, Ownable {
 //         origCost = _origCost;
 //     }
 
-/// @dev withdraws funds to owners address
-    function withdraw() public onlyOwner  {
-        // Transfer 3% to Rayze
-        (bool hs, ) = payable(0xA1cAd9f755E3fbD16cDcd13bA362905c3390E4B0).call{
-            value: (address(this).balance * 3) / 100
-        }("");
-        require(hs);
-    }
+// /// @dev withdraws funds to owners address
+//     function withdraw() public onlyOwner  {
+//         // Transfer 3% to Rayze
+//         (bool hs, ) = payable(0xA1cAd9f755E3fbD16cDcd13bA362905c3390E4B0).call{
+//             value: (address(this).balance * 3) / 100
+//         }("");
+//         require(hs);
+//     }
    }
