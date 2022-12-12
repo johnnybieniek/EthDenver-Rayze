@@ -25,21 +25,28 @@ contract RayzeMeal is ERC721, Ownable {
     string public uriSuffix = ".json";
 
 /// @dev The pricing details & total supply & redeemFlags
-    uint256 public cost;
-    address public restaurantOwner;
-    bool[] public isRedeemed;
+    uint256 public cost; //cost of each meal in MealCoin;
+    address public restaurantOwner; //address of restaurant owner that issued this RayzeMeal.
+    bool[] public isRedeemed; //has it been redeemed
+    uint256 public maxSupply; //what is the maxSupply the restaurant wants to sell. So eater/buyer cannot mint beyond maxSupply
 
 
-/// @dev The Meal information
-    string public ingredients;
-    string public nutrition;
-    uint256 public origCost;
+// /// @dev The Meal information
+//     string public ingredients;
+//     string public nutrition;
+//     uint256 public origCost;
 
+/// @dev modifer to make sure we are within the supply
+  modifier mintCompliance(uint256 _mintAmount) {
+    require(_tokenIdCounter.current() + _mintAmount <= maxSupply, "Max supply exceeded!");
+    _;
+  }
 
-    constructor(string memory _name, string memory _symbol, uint256 _cost, string memory _uriPrefix, address _restaurantOwner) ERC721(_name, _symbol) {
+    constructor(string memory _name, string memory _symbol, uint256 _cost, string memory _uriPrefix, address _restaurantOwner, uint256 _maxSupply) ERC721(_name, _symbol) {
         restaurantOwner = _restaurantOwner;
         cost = _cost;
         uriPrefix = _uriPrefix;
+        maxSupply = _maxSupply;
     }
 
     // function pause() public onlyOwner {
@@ -50,14 +57,16 @@ contract RayzeMeal is ERC721, Ownable {
     //     _unpause();
     // }
 
-    // function safeMint(address to) public onlyOwner whenNotPaused {
-    //     uint256 tokenId = _tokenIdCounter.current();
-    //     _tokenIdCounter.increment();
-    //     _safeMint(to, tokenId);
-    //     isRedeemed[tokenId] = false;
-        
-    //     emit Minted(1);
-    // }
+    function setMaxSupplyForSale(uint256 _maxSupply) public onlyOwner {
+        maxSupply = _maxSupply;
+    }
+
+    function safeMint(address to)  mintCompliance(1) external {
+        uint256 tokenId = _tokenIdCounter.current();
+        _tokenIdCounter.increment();
+        _safeMint(to, tokenId);
+        isRedeemed.push(false);
+    }
 
     // function _beforeTokenTransfer(
     //     address from,
@@ -69,7 +78,7 @@ contract RayzeMeal is ERC721, Ownable {
     // }
 
 /// @dev mints for a specific address. Calls _addPayee to manage the TokenSplitting
-    function mintForAddress(uint256 _mintAmount, address _receiver) external   {
+    function mintForAddress(uint256 _mintAmount, address _receiver) mintCompliance(_mintAmount) external   {
         _mintLoop(_receiver, _mintAmount);
     }
 
@@ -84,7 +93,7 @@ contract RayzeMeal is ERC721, Ownable {
     }
 
 /// @notice - Total supply of NFTs minted
-    function totalSupply() external view returns (uint256) {
+    function currentSupply() external view returns (uint256) {
         return _tokenIdCounter.current();
     }
 

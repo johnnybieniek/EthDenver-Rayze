@@ -80,12 +80,12 @@ contract RayzeMarketplace is IERC721Receiver {
     }
 
 /// @dev Customer is the sender - and books a meal
-    function bookMeal(address _mealAddress,
-        uint256 _tokId) public  {
+    function bookMeal(address _mealAddress) public  {
         //require() msg.sender has to have enough cash
         IERC20(rayzeToken).safeTransferFrom(msg.sender, address(this),
             IRayzeMeal(_mealAddress).cost());
-        IRayzeMeal(_mealAddress).safeTransferFrom(address(this), msg.sender, _tokId);
+        IRayzeMeal(_mealAddress).safeMint(msg.sender);
+        //IRayzeMeal(_mealAddress).safeTransferFrom(address(this), msg.sender, _tokId);
     }
 
 /// @dev Customer is the sender - and redeems and picksUp a meal
@@ -97,7 +97,6 @@ contract RayzeMarketplace is IERC721Receiver {
         IERC20(rayzeToken).safeTransfer(
             IRayzeMeal(_mealAddress).restaurantOwner(),
             IRayzeMeal(_mealAddress).cost());
-
         IRayzeMeal(_mealAddress).setIsRedeemed(_tokId, true);
     }
 

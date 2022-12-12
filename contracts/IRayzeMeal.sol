@@ -4,7 +4,7 @@ pragma solidity ^0.8.17;
 
 interface IRayzeMeal  {
 
-    function mint(address account, uint256 amount) external returns (bool);
+    function safeMint(address to) external;
     function burn(address account, uint256 amount) external returns (bool);
     function mintForAddress(uint256 _mintAmount, address _receiver) external;
     function totalSupply() external returns (uint256);

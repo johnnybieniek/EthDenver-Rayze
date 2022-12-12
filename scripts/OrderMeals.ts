@@ -59,7 +59,7 @@ async function mainMenu(rl: readline.Interface) {
 
 function menuOptions(rl: readline.Interface) {
   rl.question(
-    "Select operation: \n Options: \n [0]: Exit \n [1]: Add restaurant \n [2]: Create Meal NFT & Open Meal Sales \n [3]: Open Meals for Sale \n [4]: Buy Meal \n [5]: Redeem Meal \n [6]: Load Meal Coin \n [7]: Restaurant withdraw \n [8]: Lookup Restaurant\n [9]: Lookup Meal \n",
+    "Select operation: \n Options: \n [0]: Exit \n [1]: Add restaurant \n [2]: Create & Register Meal NFT \n [3]: Set Max Meals to Sell for the day \n [4]: Buy Meal \n [5]: Redeem Meal \n [6]: Load Meal Coin \n [7]: Restaurant withdraw \n [8]: Lookup Restaurant\n [9]: Lookup Meal \n",
     async (answer: string) => {
       console.log(`Selected: ${answer}\n`);
       const option = Number(answer);
@@ -93,21 +93,10 @@ function menuOptions(rl: readline.Interface) {
           break;
         case 3:
           rl.question("What is the name of the restaurant\n", async (rName) => {
-              try {
-                await openMealSale(rName);
-              } catch (error) {
-                console.log("error\n");
-                console.log({ error });
-              }
-              mainMenu(rl);
-            });
-          break;
-        case 4:
-          rl.question("What is the name of the restaurant\n", async (rName) => {
             rl.question("What is the index of the meal?\n", async (mIx) => {
-              rl.question("What is the index of the NFT to book?\n", async (nftIx) => {
+              rl.question("What are the Max Meals you are willing to sell\n", async (maxSupply) => {
                 try {
-                  await bookMeal(rName, mIx, nftIx);
+                  await setMaxSupply(rName, mIx, maxSupply);
                 } catch (error) {
                   console.log("error\n");
                   console.log({ error });
@@ -117,10 +106,23 @@ function menuOptions(rl: readline.Interface) {
             });
           });
           break;
+        case 4:
+          rl.question("What is the name of the restaurant\n", async (rName) => {
+            rl.question("What is the index of the meal?\n", async (mIx) => {
+                try {
+                  await bookMeal(rName, mIx);
+                } catch (error) {
+                  console.log("error\n");
+                  console.log({ error });
+                }
+                mainMenu(rl);
+            });
+          });
+          break;
         case 5:
           rl.question("What is the name of the restaurant\n", async (rName) => {
             rl.question("What is the index of the meal?\n", async (mIx) => {
-              rl.question("What is the index of the NFT to book?\n", async (nftIx) => {
+              rl.question("What is the index of the NFT to redeem?\n", async (nftIx) => {
                 try {
                   await redeemMeal(rName, mIx, nftIx);
                 } catch (error) {
@@ -210,7 +212,7 @@ async function createMeal(rName: string, mName: string) {
   const restAddress = restInfo.owner;
   const rayzeMealFactory = await ethers.getContractFactory("RayzeMeal");
   const rMeal = await rayzeMealFactory.deploy(mName, "RYM",1,
-    "ipfs://QmWC6NEbHNrAWy8x6BzR2rnWpkjzoVMrKxXgRxSpqNTgFh/", restAddress);
+    "ipfs://QmWC6NEbHNrAWy8x6BzR2rnWpkjzoVMrKxXgRxSpqNTgFh/", restAddress, 50);
   await rMeal.deployed();
   
   const tx = await rayze.connect(accounts[0]).registerRayzeMeal(rName, rMeal.address);
@@ -218,8 +220,8 @@ async function createMeal(rName: string, mName: string) {
   console.log(`sender is ${accounts[0].address}, and owner is ${restAddress}`);
   const bookWinTx = await rayze.connect(accounts[0]).setBookingOpen(true);
   bookWinTx.wait();
-  const openMealTx = await rayze.connect(accounts[0]).openMealSales(rName, rMeal.address,50);
-  openMealTx.wait();
+  // const openMealTx = await rayze.connect(accounts[0]).openMealSales(rName, rMeal.address,50);
+  // openMealTx.wait();
   const meal = rMeal.address;
  //const meal = await rayze.rayzeMealLookup(rName);
  console.log(`The restaurant is ${restInfo} and meal registered is ${meal}\n`);
@@ -237,11 +239,21 @@ async function listRestaurant(restId: string) {
     console.log(`We have ${len} restaurants. The restaurant listed is ${rest}\n`);
 }
 
-async function bookMeal(rName: string, mIx: string, nftIx: string) {
+async function setMaxSupply(rName: string, mIx: string, maxSupply: string) {
+  
+  const rest = await rayze.rayzeMealList(Number(mIx));
+  const rayzeMealFactory = await ethers.getContractFactory("RayzeMeal");
+  const rMeal = await rayzeMealFactory.attach(rest).setMaxSupplyForSale(Number(maxSupply));
+  rMeal.wait();
+  const currSupply = await rayzeMealFactory.attach(rest).currentSupply();
+  console.log(`The current and max supply is ${currSupply} ${maxSupply}`);
+}
+
+async function bookMeal(rName: string, mIx: string) {
   
   const rest = await rayze.rayzeMealList(Number(mIx));
   const appr = await token.connect(accounts[1]).approve(rayze.address,100);
-  const tx = await rayze.connect(accounts[1]).bookMeal(rest, Number(nftIx));
+  const tx = await rayze.connect(accounts[1]).bookMeal(rest);
   tx.wait();
   console.log(`The meal is booked ${rest}`);
 }
