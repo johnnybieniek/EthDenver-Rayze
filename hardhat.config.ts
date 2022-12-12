@@ -1,16 +1,16 @@
-import { HardhatUserConfig } from "hardhat/config";
-import "@nomicfoundation/hardhat-toolbox";
+import { HardhatUserConfig } from "hardhat/config"
+import "@nomicfoundation/hardhat-toolbox"
 
 const config: HardhatUserConfig = {
-  solidity: "0.8.17",
-  paths: {tests: "tests"}
-};
+    solidity: "0.8.17",
+    paths: { tests: "tests" },
+}
 task("accounts", "Prints the list of accounts", async (taskArgs, hre) => {
-  const accounts = await hre.ethers.getSigners();
+    const accounts = await hre.ethers.getSigners()
 
-  for (const account of accounts) {
-    console.log(account.address);
-  }
-});
+    for (const account of accounts) {
+        console.log(account.address)
+    }
+})
 
-export default config;
+export default config

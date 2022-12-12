@@ -5,6 +5,8 @@ import "@openzeppelin/contracts/access/AccessControl.sol";
 import "@openzeppelin/contracts/token/ERC20/ERC20.sol";
 import "@openzeppelin/contracts/token/ERC20/extensions/ERC20Burnable.sol";
 
+error MealToken__NotEnoughEthSent();
+
 /// @title MealToken - ERC20 token that can be used to purchase meals on the marketplace
 /// @author Jamshed Cooper, Jan Bieniek
 /// @dev Each token can be purchased for a stablecoin with a 1:1 ratio.
@@ -20,7 +22,9 @@ contract MealToken is ERC20, ERC20Burnable, AccessControl {
 
     /// @dev The mint transaction is sent by the user and comes from the RayzeMarketplace contract
     /// @dev The marketplace receives a certain value in stablecoins and sends the corresponding amount of tokens to the user
-    function mint(address to, uint256 amount) public onlyRole(MINTER_ROLE) {
+    function mint(address to) public payable {
+        if (msg.value < 1e15) revert MealToken__NotEnoughEthSent();
+        uint256 amount = msg.value * 1000;
         _mint(to, amount);
     }
 }
