@@ -1,4 +1,4 @@
-import { ethers } from "hardhat";
+import { ethers } from "ethers";
 import * as readline from "readline";
 import { SignerWithAddress } from "@nomiclabs/hardhat-ethers/signers";
 import {
@@ -8,20 +8,34 @@ import {
   RayzeMarketplace__factory,
   RayzeMeal,
   RayzeMeal__factory,
-} from "../typechain-types"
+} from "../typechain-types";
 
 let rayze: RayzeMarketplace;
 let token: MealToken;
 let accounts: SignerWithAddress[];
+let signer: ethers.Wallet; //restaurant signer
+let signerCustomer: ethers.Wallet; //customer signer
 
 
-const BET_PRICE = 1;
-const BET_FEE = 0.2;
+
+const MEAL_PRICE =  1;
 const TOKEN_RATIO = 1;
+const MEALTOKEN_CONTRACT_ADDRESS ='0x56A0B5A1a74A687C94759127cB8FB2E75e7d7A21';
+const RAYZEMARKETPLACE_CONTRACT_ADDRESS = '0xfEb9ce2E006a2Fc98e7bbA7825c86Cd55179e239';
+//The MTK balance of 0xda20b99355aDb20129149D29eb7Ae9d70469E251 is 0
+//The MTK balance of 0x43610EC8743998A8D95831447BC2E59382c60775 is 0
+
+const ALCHEMY_API_KEY= process.env.ETH_GOERLI_KEY;
+const ETH_REST = String(process.env.ETH_W3);
+const ETH_CUST = String(process.env.ETH_W4);
+const ETH_REST_PVT = String(process.env.ETH_P3);
+const ETH_CUST_PVT = String(process.env.ETH_P4);
+
+
 
 
 async function main() {
-  await initAccounts();
+  //await initAccounts();
   await initContracts();
   const rl = readline.createInterface({
     input: process.stdin,
@@ -31,27 +45,60 @@ async function main() {
 }
 
 async function initContracts() {
-  const tokenFactory = await ethers.getContractFactory("MealToken");
-  token = await tokenFactory.deploy(
-    "Rayze",
-    "RYZ"
-  );
-  await token.deployed();
+  ///goerli  
+  //connect to provider
+  const provider = ethers.getDefaultProvider("goerli", {
+    alchemy: ALCHEMY_API_KEY
+  });
+  const wallet = new ethers.Wallet(ETH_REST_PVT);
+  signer = wallet.connect(provider);
+  var balance = await signer.getBalance();
+  console.log(`Rest - W3 balance is ${signer.address} / ${balance} wei`);
 
-  const tx = await token.connect(accounts[0]).mint(accounts[1].address,100);
-  tx.wait();
+  const walletCust = new ethers.Wallet(ETH_CUST_PVT);
+  signerCustomer = wallet.connect(provider);
+  balance = await signerCustomer.getBalance();
+  console.log(`Cust - W3 balance is ${signerCustomer.address} / ${balance} wei`);
+  //connect to provider
 
-  const bal = token.balanceOf(accounts[1].address);
-  console.log(`The balance of ${accounts[1].address} is ${(await bal).toNumber()}`);
+  //Deploy meal token and mint 100 MTK
+  const tokenFactory = new MealToken__factory(signer);
+  const contractFactory = new RayzeMarketplace__factory(signer);
+  if (MEALTOKEN_CONTRACT_ADDRESS == ''){
+    token = await tokenFactory.deploy("MealToken","MTK");
+    await token.deployed();
+    console.log(`MealToken MTK is deployed at ${token.address}`);
   
-  const contractFactory = await ethers.getContractFactory("RayzeMarketplace");
-  rayze = await contractFactory.deploy(token.address);
-  await rayze.deployed();
+    //Mint tokens for both accounts
+    var tx = await token.mintAmount(ETH_REST,
+      ethers.utils.parseEther(MEAL_PRICE.toFixed(18)).div(1e15));
+    tx.wait();
+    tx = await token.mintAmount(ETH_CUST,
+      ethers.utils.parseEther(MEAL_PRICE.toFixed(18)).div(1e15));
+    tx.wait();
+  }
+  else {
+    token = tokenFactory.attach(MEALTOKEN_CONTRACT_ADDRESS);
+  }
+  console.log(`MealToken MTK is deployed at ${token.address}`);
+  var bal = await token.balanceOf(ETH_REST);
+  console.log(`The MTK balance of ${ETH_REST} is ${(await bal).toNumber()}`);
+  bal = await token.balanceOf(ETH_CUST);
+  console.log(`The MTK balance of ${ETH_CUST} is ${(await bal).toNumber()}`);
+
+  if (RAYZEMARKETPLACE_CONTRACT_ADDRESS == ''){
+    rayze = await contractFactory.deploy(token.address);
+    await rayze.deployed();
+  } 
+  else {
+    rayze = contractFactory.attach(RAYZEMARKETPLACE_CONTRACT_ADDRESS);
+  }
+  console.log(`RayzeMarketPlace is deployed at ${rayze.address}`);
 }
 
-async function initAccounts() {
-  accounts = await ethers.getSigners();
-}
+// async function initAccounts() {
+//   accounts = await ethers.getSigners();
+// }
 
 async function mainMenu(rl: readline.Interface) {
   menuOptions(rl);
@@ -135,26 +182,14 @@ function menuOptions(rl: readline.Interface) {
           });
           break;
         case 6:
-          rl.question("What account (index) to use?\n", async (index) => {
-            const prize = await displayPrize(index);
-            if (Number(prize) > 0) {
-              rl.question(
-                "Do you want to claim your prize? [Y/N]\n",
-                async (answer) => {
-                  if (answer.toLowerCase() === "y") {
-                    // try {
-                    //   await claimPrize(index, prize);
-                    // } catch (error) {
-                    //   console.log("error\n");
-                    //   console.log({ error });
-                    // }
-                  }
-                  mainMenu(rl);
-                }
-              );
-            } else {
-              mainMenu(rl);
+          rl.question("How much MealToken MTK do you want to mint?\n", async (loadVal) => {
+            try {
+              await mintMealToken(loadVal);
+            } catch (error) {
+              console.log("error\n");
+              console.log({ error });
             }
+            mainMenu(rl);
           });
           break;
         case 7:
@@ -201,7 +236,7 @@ function menuOptions(rl: readline.Interface) {
 }
 
 async function addRestaurant(name: string) {
-  const tx = await rayze.connect(accounts[0]).registerRestaurant(name, "Rockafeller center", 55);
+  const tx = await rayze.connect(signer).registerRestaurant(name, "Rockafeller center", 55);
   tx.wait();
   const rName = await rayze.restaurantLookup(name);
   console.log(`The restaurant registered is ${rName}\n`);
@@ -210,15 +245,15 @@ async function addRestaurant(name: string) {
 async function createMeal(rName: string, mName: string) {
   const restInfo = await rayze.restaurantLookup(rName);
   const restAddress = restInfo.owner;
-  const rayzeMealFactory = await ethers.getContractFactory("RayzeMeal");
+  const rayzeMealFactory = new RayzeMeal__factory(signer);
   const rMeal = await rayzeMealFactory.deploy(mName, "RYM",1,
     "ipfs://QmWC6NEbHNrAWy8x6BzR2rnWpkjzoVMrKxXgRxSpqNTgFh/", restAddress, 50);
   await rMeal.deployed();
   
-  const tx = await rayze.connect(accounts[0]).registerRayzeMeal(rName, rMeal.address);
+  const tx = await rayze.connect(signer).registerRayzeMeal(rName, rMeal.address);
   tx.wait();
-  console.log(`sender is ${accounts[0].address}, and owner is ${restAddress}`);
-  const bookWinTx = await rayze.connect(accounts[0]).setBookingOpen(true);
+  console.log(`sender is ${ETH_REST}, and owner is ${restAddress}`);
+  const bookWinTx = await rayze.connect(signer).setBookingOpen(true);
   bookWinTx.wait();
   // const openMealTx = await rayze.connect(accounts[0]).openMealSales(rName, rMeal.address,50);
   // openMealTx.wait();
@@ -228,6 +263,25 @@ async function createMeal(rName: string, mName: string) {
 }
 
 async function openMealSale(rName: string, mealAddress: string) {
+}
+
+async function mintMealToken(loadVal: string) {
+  var mintAmt: number;
+  mintAmt = +loadVal;
+
+  //Mint tokens for both accounts
+  var tx = await token.mintAmount(ETH_REST,
+    ethers.utils.parseEther(MEAL_PRICE.toFixed(18)).div(1e15));
+  tx.wait();
+  tx = await token.mintAmount(ETH_CUST,
+    ethers.utils.parseEther(MEAL_PRICE.toFixed(18)).div(1e15));
+  tx.wait();
+
+  //balances
+  var bal = await token.balanceOf(ETH_REST);
+  console.log(`The MTK balance of ${ETH_REST} is ${(await bal).toNumber()}`);
+  bal = await token.balanceOf(ETH_CUST);
+  console.log(`The MTK balance of ${ETH_CUST} is ${(await bal).toNumber()}`);
 }
 
 async function listRestaurant(restId: string) {
@@ -241,19 +295,19 @@ async function listRestaurant(restId: string) {
 
 async function setMaxSupply(rName: string, mIx: string, maxSupply: string) {
   
-  const rest = await rayze.rayzeMealList(Number(mIx));
-  const rayzeMealFactory = await ethers.getContractFactory("RayzeMeal");
-  const rMeal = await rayzeMealFactory.attach(rest).setMaxSupplyForSale(Number(maxSupply));
+  const meal = await rayze.rayzeMealList(Number(mIx));
+  const rayzeMealFactory = new RayzeMeal__factory(signer).attach(meal);
+  const rMeal = await rayzeMealFactory.connect(signer).setMaxSupplyForSale(Number(maxSupply));
   rMeal.wait();
-  const currSupply = await rayzeMealFactory.attach(rest).currentSupply();
+  const currSupply = await rayzeMealFactory.currentSupply();
   console.log(`The current and max supply is ${currSupply} ${maxSupply}`);
 }
 
 async function bookMeal(rName: string, mIx: string) {
   
   const rest = await rayze.rayzeMealList(Number(mIx));
-  const appr = await token.connect(accounts[1]).approve(rayze.address,100);
-  const tx = await rayze.connect(accounts[1]).bookMeal(rest);
+  const appr = await token.connect(signerCustomer).approve(rayze.address,100);
+  const tx = await rayze.connect(signerCustomer).bookMeal(rest);
   tx.wait();
   console.log(`The meal is booked ${rest}`);
 }
@@ -261,7 +315,7 @@ async function bookMeal(rName: string, mIx: string) {
 async function redeemMeal(rName: string, mIx: string, nftIx: string) {
   
   const rest = await rayze.rayzeMealList(Number(mIx));
-  const tx = await rayze.connect(accounts[1]).redeemMeal(rest, Number(nftIx));
+  const tx = await rayze.connect(signerCustomer).redeemMeal(rest, Number(nftIx));
   tx.wait();
   console.log(`The meal is redeemed ${rest}`);
 }
@@ -273,106 +327,12 @@ async function listMeal(mealId: string) {
   ix = +mealId;
 
     const meal = await rayze.rayzeMealList(ix);
-    console.log(`We have ${len.toString()} meals. The meal listed is ${meal}\n`);
+    const mealContract = new RayzeMeal__factory(signer).attach(meal);
+    console.log(`We have ${(await mealContract.name())} 
+      with current supply of ${(await mealContract.currentSupply())}  
+      and max supply of ${(await mealContract.maxSupply())}. The isRedeemed array is 
+      ${(await mealContract.isRedeemed(0))} ${(await mealContract.isRedeemed(1))} ${(await mealContract.isRedeemed(2))}\n`);
 }
-
-
-// async function openBets(duration: string) {
-//   const currentBlock = await ethers.provider.getBlock("latest");
-//   const tx = await contract.openBets(currentBlock.timestamp + Number(duration));
-//   const receipt = await tx.wait();
-//   console.log(`Bets opened (${receipt.transactionHash})`);
-// }
-
-// async function displayBalance(index: string) {
-//   const balanceBN = await ethers.provider.getBalance(
-//     accounts[Number(index)].address
-//   );
-//   const balance = ethers.utils.formatEther(balanceBN);
-//   console.log(
-//     `The account of address ${
-//       accounts[Number(index)].address
-//     } has ${balance} ETH\n`
-//   );
-// }
-
-// async function buyTokens(index: string, amount: string) {
-//   const tx = await contract.connect(accounts[Number(index)]).purchaseTokens({
-//     value: ethers.utils.parseEther(amount).div(TOKEN_RATIO),
-//   });
-//   const receipt = await tx.wait();
-//   console.log(`Tokens bought (${receipt.transactionHash})\n`);
-// }
-
-// async function displayTokenBalance(index: string) {
-//   const balanceBN = await token.balanceOf(accounts[Number(index)].address);
-//   const balance = ethers.utils.formatEther(balanceBN);
-//   console.log(
-//     `The account of address ${
-//       accounts[Number(index)].address
-//     } has ${balance} LT0\n`
-//   );
-// }
-
-// async function bet(index: string, amount: string) {
-//   const allowTx = await token
-//     .connect(accounts[Number(index)])
-//     .approve(contract.address, ethers.constants.MaxUint256);
-//   await allowTx.wait();
-//   const tx = await contract.connect(accounts[Number(index)]).betMany(amount);
-//   const receipt = await tx.wait();
-//   console.log(`Bets placed (${receipt.transactionHash})\n`);
-// }
-
-// async function closeLottery() {
-//   const tx = await contract.closeLottery();
-//   const receipt = await tx.wait();
-//   console.log(`Bets closed (${receipt.transactionHash})\n`);
-// }
-
-// async function displayPrize(index: string): Promise<string> {
-//   const prizeBN = await contract.prize(accounts[Number(index)].address);
-//   const prize = ethers.utils.formatEther(prizeBN);
-//   console.log(
-//     `The account of address ${
-//       accounts[Number(index)].address
-//     } has earned a prize of ${prize} Tokens\n`
-//   );
-//   return prize;
-// }
-
-// async function claimPrize(index: string, amount: string) {
-//   const tx = await contract
-//     .connect(accounts[Number(index)])
-//     .prizeWithdraw(ethers.utils.parseEther(amount));
-//   const receipt = await tx.wait();
-//   console.log(`Prize claimed (${receipt.transactionHash})\n`);
-// }
-
-// async function displayOwnerPool() {
-//   const balanceBN = await contract.ownerPool();
-//   const balance = ethers.utils.formatEther(balanceBN);
-//   console.log(`The owner pool has (${balance}) Tokens \n`);
-// }
-
-// async function withdrawTokens(amount: string) {
-//   const tx = await contract.ownerWithdraw(ethers.utils.parseEther(amount));
-//   const receipt = await tx.wait();
-//   console.log(`Withdraw confirmed (${receipt.transactionHash})\n`);
-// }
-
-// async function burnTokens(index: string, amount: string) {
-//   const allowTx = await token
-//     .connect(accounts[Number(index)])
-//     .approve(contract.address, ethers.constants.MaxUint256);
-//   const receiptAllow = await allowTx.wait();
-//   console.log(`Allowance confirmed (${receiptAllow.transactionHash})\n`);
-//   const tx = await contract
-//     .connect(accounts[Number(index)])
-//     .returnTokens(ethers.utils.parseEther(amount));
-//   const receipt = await tx.wait();
-//   console.log(`Burn confirmed (${receipt.transactionHash})\n`);
-// }
 
 main().catch((error) => {
   console.error(error);

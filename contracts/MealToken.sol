@@ -27,4 +27,9 @@ contract MealToken is ERC20, ERC20Burnable, AccessControl {
         uint256 amount = msg.value * 1000;
         _mint(to, amount);
     }
+        /// @dev The mint transaction is sent by the user and comes from the RayzeMarketplace contract
+    /// @dev The marketplace receives a certain value in stablecoins and sends the corresponding amount of tokens to the user
+    function mintAmount(address to, uint256 amount) external {
+        _mint(to, amount);
+    }
 }
