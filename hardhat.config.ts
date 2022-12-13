@@ -5,12 +5,12 @@ import * as dotenv from "dotenv"
 import "@nomiclabs/hardhat-etherscan"
 
 dotenv.config()
-const dev_mnemonic = process.env.ETH_WALLET_MNEMONIC
-const infura_endpoint = process.env.ETH_INFURA_RINKEBY
-const acct = process.env.ETH_W1
-const mumbai_endpoint = process.env.ETH_MUMBAI
-const matic_endpoint = process.env.ETH_MATIC
-const goerli_endpoint = process.env.ETH_GOERLI
+const dev_mnemonic = process.env.ETH_WALLET_MNEMONIC || ""
+const infura_endpoint = process.env.ETH_INFURA_RINKEBY || ""
+const acct = process.env.ETH_W1 || ""
+const mumbai_endpoint = process.env.ETH_MUMBAI || ""
+const matic_endpoint = process.env.ETH_MATIC || ""
+const goerli_endpoint = process.env.ETH_GOERLI || ""
 
 const config: HardhatUserConfig = {
     solidity: "0.8.17",
