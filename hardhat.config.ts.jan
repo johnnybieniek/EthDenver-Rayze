@@ -19,6 +19,7 @@ const config: HardhatUserConfig = {
             url: GOERLI_RPC_URL,
             accounts: [PRIVATE_KEY],
             chainId: 5,
+            gas: 20000000,
         },
     },
     etherscan: {

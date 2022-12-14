@@ -6,6 +6,7 @@ import "@openzeppelin/contracts/token/ERC20/ERC20.sol";
 import "@openzeppelin/contracts/token/ERC20/extensions/ERC20Burnable.sol";
 
 error MealToken__NotEnoughEthSent();
+error MealToken__NothingToWithdraw();
 
 /// @title MealToken - ERC20 token that can be used to purchase meals on the marketplace
 /// @author Jamshed Cooper, Jan Bieniek
@@ -27,9 +28,19 @@ contract MealToken is ERC20, ERC20Burnable, AccessControl {
         uint256 amount = msg.value * 1000;
         _mint(to, amount);
     }
-        /// @dev The mint transaction is sent by the user and comes from the RayzeMarketplace contract
+
+    /// @dev The mint transaction is sent by the user and comes from the RayzeMarketplace contract
     /// @dev The marketplace receives a certain value in stablecoins and sends the corresponding amount of tokens to the user
     function mintAmount(address to, uint256 amount) external {
         _mint(to, amount);
+    }
+
+    /// @dev function that allows the contract's owner to withdraw ETH
+    function withdrawEther() public payable onlyRole(DEFAULT_ADMIN_ROLE) {
+        uint256 contractBalance = address(this).balance;
+        if (contractBalance == 0) revert MealToken__NothingToWithdraw();
+
+        address payable to = payable(msg.sender);
+        to.transfer(contractBalance);
     }
 }

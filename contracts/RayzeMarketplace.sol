@@ -6,6 +6,12 @@ import "@openzeppelin/contracts/token/ERC721/IERC721Receiver.sol";
 import {IRayzeMeal} from "./IRayzeMeal.sol";
 import "hardhat/console.sol";
 
+error RayzeMarketplace__AccountHasToBeOwner();
+error RayzeMarketplace__OnlyOwnerCanRedeem();
+error RayzeMarketplace__MealAlreadyRedeemed();
+error RayzeMarketplace__SalesNotOpen();
+error RayzeMarketplace__SenderIsNotTheRestaurantOwner();
+
 /// @title RayzeMeal - Tokenized meals which are redeemable
 /// @author Jamshed Cooper, Jan Bieniek
 
@@ -34,7 +40,7 @@ contract RayzeMarketplace is IERC721Receiver {
     /// @notice Modifiers - Ensure onlyByOwner
     modifier onlyByOwner() {
         console.log("only by owner", msg.sender, owner);
-        require(msg.sender == owner, "sender has to be owner");
+        if (msg.sender != owner) revert RayzeMarketplace__AccountHasToBeOwner();
         _;
     }
 
@@ -99,8 +105,10 @@ contract RayzeMarketplace is IERC721Receiver {
     /// @dev Customer is the sender - and redeems and picksUp a meal
     function redeemMeal(address _mealAddress, uint256 _tokId) public {
         //require() msg.sender has to have enough cash
-        require(IRayzeMeal(_mealAddress).ownerOf(_tokId) == msg.sender, "only owner can redeem");
-        require(IRayzeMeal(_mealAddress).isRedeemed(_tokId) == false, "Meal is already redeemed");
+        if (IRayzeMeal(_mealAddress).ownerOf(_tokId) != msg.sender)
+            revert RayzeMarketplace__OnlyOwnerCanRedeem();
+        if (IRayzeMeal(_mealAddress).isRedeemed(_tokId) != false)
+            revert RayzeMarketplace__MealAlreadyRedeemed();
         IERC20(rayzeToken).safeTransfer(
             IRayzeMeal(_mealAddress).restaurantOwner(),
             IRayzeMeal(_mealAddress).cost()
@@ -115,8 +123,9 @@ contract RayzeMarketplace is IERC721Receiver {
         address _mealAddress,
         uint256 numMealsForSale
     ) public {
-        require(isBookingOpen == true, "Sales not open");
-        require(restaurantLookup[_restName].owner == msg.sender, "sender not rest owner");
+        if (isBookingOpen != true) revert RayzeMarketplace__SalesNotOpen();
+        if (restaurantLookup[_restName].owner != msg.sender)
+            revert RayzeMarketplace__SenderIsNotTheRestaurantOwner();
 
         IRayzeMeal(_mealAddress).mintForAddress(numMealsForSale, address(this));
     }
